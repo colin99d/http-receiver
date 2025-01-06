@@ -14,18 +14,23 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
 
+/// A simple HTTP server that prints receivec requests and returns a JSON response
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
+    /// The status code to return in the response
     #[arg(short, long, default_value = "200")]
     status_code: u16,
 
+    /// The JSON response to return
     #[arg(short, long, default_value = "{}")]
     json: String,
 
+    /// The port to listen on
     #[arg(short, long, default_value = "9000")]
     port: u16,
 
+    /// The headers to highlight in the output
     #[arg(short = 'H', long, num_args = 0.., value_delimiter = ',')]
     highlight_headers: Vec<String>,
 }
