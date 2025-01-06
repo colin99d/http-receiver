@@ -13,7 +13,7 @@ A simple tool for receiving http requests and viewing their contents.
 ## Usage
 
 To begin using the server, you can simply run `http-receiver` in your terminal.
-This will start the server on port 9000. For more advanced usage see our example
+This will start the server on port 9000. For more advanced usage see our examples
 below.
 
 ### Example
