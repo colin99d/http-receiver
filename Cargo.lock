@@ -246,6 +246,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "colored",
+ "http",
  "http-body",
  "http-body-util",
  "hyper",
