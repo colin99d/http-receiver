@@ -9,7 +9,6 @@ use hyper::{service::service_fn, Request, Response, Result};
 use hyper_util::rt::TokioIo;
 use std::net::SocketAddr;
 use std::str;
-use std::sync::Arc;
 use tokio::net::TcpListener;
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
 
@@ -69,8 +68,8 @@ fn full<T: Into<Bytes>>(chunk: T) -> BoxBody {
 async fn handle_request(
     req: Request<hyper::body::Incoming>,
     response_code: u16,
-    json_response: Arc<String>,
-    highlight_headers: Arc<Vec<String>>,
+    json_response: &str,
+    highlight_headers: &[String],
 ) -> Result<Response<BoxBody>> {
     let method = &req.method();
     println!("Method: {method}");
@@ -102,8 +101,6 @@ async fn handle_request(
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let args = Args::parse();
-    let json_item = Arc::new(args.json);
-    let highlight_headers = Arc::new(args.highlight_headers);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], args.port));
     let listener = TcpListener::bind(addr).await?;
@@ -112,19 +109,14 @@ async fn main() -> std::io::Result<()> {
         let (stream, _) = listener.accept().await?;
         let io = TokioIo::new(stream);
 
-        let json_clone = Arc::clone(&json_item);
-        let highlight_headers_clone = Arc::clone(&highlight_headers);
+        let json_clone = args.json.clone();
+        let headers_clone = args.highlight_headers.clone();
         tokio::task::spawn(async move {
             if let Err(err) = http1::Builder::new()
                 .serve_connection(
                     io,
                     service_fn(|x| {
-                        handle_request(
-                            x,
-                            args.status_code,
-                            json_clone.clone(),
-                            highlight_headers_clone.clone(),
-                        )
+                        handle_request(x, args.status_code, &json_clone, &headers_clone)
                     }),
                 )
                 .await
