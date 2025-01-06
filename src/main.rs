@@ -2,13 +2,11 @@
 use clap::Parser;
 use colored::Colorize;
 use http::header::HeaderMap;
-use http_body_util::BodyExt;
-use http_body_util::Full;
+use http_body_util::{BodyExt, Full};
 use hyper::body::Bytes;
 use hyper::server::conn::http1;
 use hyper::{service::service_fn, Request, Response, Result};
 use hyper_util::rt::TokioIo;
-use serde_json::Value;
 use std::net::SocketAddr;
 use std::str;
 use std::sync::Arc;
@@ -54,10 +52,9 @@ fn format_headers(headers: &HeaderMap, highlight_headers: &[String]) -> String {
             .iter()
             .any(|h| h.to_lowercase() == header_name);
         if should_highlight {
-            // Выделяем имя заголовка красным цветом
             output.push_str(&format!("  {}: {:?}\n", name.to_string().red(), value));
         } else {
-            output.push_str(&format!("  {}: {:?}\n", name, value));
+            output.push_str(&format!("  {name}: {value:?}\n"));
         }
     }
     output
@@ -72,7 +69,7 @@ fn full<T: Into<Bytes>>(chunk: T) -> BoxBody {
 async fn handle_request(
     req: Request<hyper::body::Incoming>,
     response_code: u16,
-    json_response: Arc<Value>,
+    json_response: Arc<String>,
     highlight_headers: Arc<Vec<String>>,
 ) -> Result<Response<BoxBody>> {
     let method = &req.method();
@@ -84,7 +81,7 @@ async fn handle_request(
             .map_or("/", hyper::http::uri::PathAndQuery::as_str)
     );
 
-    let headers_str = format_headers(&req.headers(), &highlight_headers);
+    let headers_str = format_headers(req.headers(), &highlight_headers);
     println!("Headers:");
     println!("{headers_str}");
 
@@ -105,8 +102,7 @@ async fn handle_request(
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let args = Args::parse();
-    let json_body: Value = serde_json::from_str(&args.json).unwrap();
-    let json_item = Arc::new(json_body);
+    let json_item = Arc::new(args.json);
     let highlight_headers = Arc::new(args.highlight_headers);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], args.port));
