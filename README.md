@@ -18,14 +18,14 @@ below.
 
 ### Examples
 
-Here is an example of returning custom json and selecting headers to highlight.
+Returning custom json and selecting headers to highlight:
 
 ```bash
 http-receiver -j '{"value1": "key1", "value2": 5 }' -H authorization,content-length
 ```
 
 
-Here is an example of changing the port to 3030 and making the return status code 404.
+Changing the port to 3030 and making the return status code 404:
 
 ```bash
 http-receiver -s 404 -p 3030
