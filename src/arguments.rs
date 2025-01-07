@@ -68,7 +68,7 @@ pub struct Args {
 
     /// The headers to include in the response. Content-Type used here will override the
     /// `content_type` argument.
-    /// Example usage: `--header "Content-Type: application/json" --header "Authorization
+    /// Example usage: `--header "Content-Type: application/json" --header "Authorization"'
     #[arg(short = 'H', long, value_parser, num_args = 0.., value_delimiter = ',')]
     headers: Vec<Header>,
 
