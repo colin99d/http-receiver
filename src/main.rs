@@ -1,4 +1,5 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+use colored::Colorize;
 use clap::Parser;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
@@ -20,6 +21,8 @@ async fn main() -> std::io::Result<()> {
 
     let addr = SocketAddr::from(([127, 0, 0, 1], args.get_port()));
     let listener = TcpListener::bind(addr).await?;
+
+    println!("{} Listening on http://{}", "[Started]".green(), addr);
 
     loop {
         let (stream, _) = listener.accept().await?;
