@@ -1,7 +1,7 @@
 use clap::{Parser, ValueEnum};
+use std::error::Error;
 use std::fmt;
 use std::str::FromStr;
-use std::error::Error;
 
 #[derive(ValueEnum, Clone)]
 pub enum ContentType {
@@ -37,9 +37,9 @@ impl FromStr for Header {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<&str> = s.splitn(2, ':').collect();
         if parts.len() != 2 {
-            return Err(From::from(format!("Improperly formatted header: {}", s)));
+            return Err(From::from(format!("Improperly formatted header: {s}")));
         }
-        Ok(Header {
+        Ok(Self {
             key: parts[0].trim().to_string(),
             value: parts[1].trim().to_string(),
         })
@@ -68,7 +68,7 @@ pub struct Args {
 
     /// The headers to include in the response. Content-Type used here will override the
     /// `content_type` argument.
-    /// Example usage: `--header "Content-Type: application/json" --header "Authorization"'
+    /// Example usage: `--header "Content-Type: application/json, Authorization: Bearer 6"`
     #[arg(short = 'H', long, value_parser, num_args = 0.., value_delimiter = ',')]
     headers: Vec<Header>,
 

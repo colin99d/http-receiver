@@ -33,7 +33,7 @@ pub async fn handle_request(
         .status(config.status_code)
         .header("Content-Type", config.content_type.to_string());
 
-    for header in config.headers.iter() {
+    for header in &config.headers {
         response_builder = response_builder.header(&header.key, &header.value);
     }
 
