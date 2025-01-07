@@ -29,10 +29,14 @@ pub async fn handle_request(
         .as_ref()
         .map_or_else(empty, |content| full(content.clone()));
 
-    let response = Response::builder()
+    let mut response_builder = Response::builder()
         .status(config.status_code)
-        .header("Content-Type", config.content_type.to_string())
-        .body(body)
-        .unwrap();
+        .header("Content-Type", config.content_type.to_string());
+
+    for header in config.headers.iter() {
+        response_builder = response_builder.header(&header.key, &header.value);
+    }
+
+    let response = response_builder.body(body).unwrap();
     Ok(response)
 }

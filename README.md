@@ -21,7 +21,7 @@ below.
 Returning custom json and selecting headers to highlight:
 
 ```bash
-http-receiver -c '{"value1": "key1", "value2": 5 }' -H authorization,content-length
+http-receiver -c '{"value1": "key1", "value2": 5 }' --highlight-headers authorization,content-length
 ```
 
 Changing the port to 3030 and making the return status code 404:
@@ -34,4 +34,10 @@ Changing the type to html and returning a basic html page:
 
 ```bash
 http-receiver -t html -c '<html><body><h1>Hello World</h1></body></html>'
+```
+
+Return a custom set cookie header:
+```bash
+http-receiver -H 'Set-Cookie: sessionId=abc123; Path=/; HttpOnly'
+
 ```
