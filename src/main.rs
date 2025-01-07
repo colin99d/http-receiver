@@ -1,15 +1,17 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 use clap::Parser;
-use colored::Colorize;
-use http::header::HeaderMap;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Bytes;
 use hyper::server::conn::http1;
 use hyper::{service::service_fn, Request, Response, Result};
 use hyper_util::rt::TokioIo;
+use pretty_request::PrettyRequest;
 use std::net::SocketAddr;
 use std::str;
 use tokio::net::TcpListener;
+
+mod pretty_request;
+
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
 
 /// A simple HTTP server that prints receivec requests and returns a JSON response
@@ -33,32 +35,6 @@ struct Args {
     highlight_headers: Vec<String>,
 }
 
-fn format_message(body_bytes: &hyper::body::Bytes) -> String {
-    if body_bytes.is_empty() {
-        return String::from("Body: (no body)");
-    }
-    match str::from_utf8(body_bytes) {
-        Ok(body_str) => format!("Body: {body_str}"),
-        Err(_) => String::from("Body: (non-UTF8 data)"),
-    }
-}
-
-fn format_headers(headers: &HeaderMap, highlight_headers: &[String]) -> String {
-    let mut output = String::new();
-    for (name, value) in headers {
-        let header_name = name.as_str().to_lowercase();
-        let should_highlight = highlight_headers
-            .iter()
-            .any(|h| h.to_lowercase() == header_name);
-        if should_highlight {
-            output.push_str(&format!("  {}: {:?}\n", name.to_string().red(), value));
-        } else {
-            output.push_str(&format!("  {name}: {value:?}\n"));
-        }
-    }
-    output
-}
-
 fn full<T: Into<Bytes>>(chunk: T) -> BoxBody {
     Full::new(chunk.into())
         .map_err(|never| match never {})
@@ -71,24 +47,8 @@ async fn handle_request(
     json_response: &str,
     highlight_headers: &[String],
 ) -> Result<Response<BoxBody>> {
-    let method = &req.method();
-    println!("Method: {method}");
-    println!(
-        "Path: {}",
-        req.uri()
-            .path_and_query()
-            .map_or("/", hyper::http::uri::PathAndQuery::as_str)
-    );
-
-    let headers_str = format_headers(req.headers(), &highlight_headers);
-    println!("Headers:");
-    println!("{headers_str}");
-
-    let body_bytes = req.collect().await.unwrap().to_bytes();
-    let body_str = format_message(&body_bytes);
-    println!("{body_str}");
-
-    println!("{}", "-".repeat(50));
+    let pretty_req = PrettyRequest::from_hyper_request(req, highlight_headers).await;
+    println!("{pretty_req}");
 
     let response = Response::builder()
         .status(response_code)
