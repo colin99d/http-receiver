@@ -36,7 +36,7 @@ Changing the type to html and returning a basic html page:
 http-receiver -t html -c '<html><body><h1>Hello World</h1></body></html>'
 ```
 
-Return a custom set cookie header:
+Returning a custom set cookie header:
 ```bash
 http-receiver -H 'Set-Cookie: sessionId=abc123; Path=/; HttpOnly'
 
