@@ -45,7 +45,6 @@ impl ContentEncoding {
                 Ok(s)
             }
             Self::Br => Ok("Brotli has not been implemented".to_string()),
-            Self::Zstd => Ok("Zstd has not been implemented".to_string()),
             /*
             Self::Br => {
                 let mut decoder = brotli::Decompressor::new(data, 4096);
@@ -53,13 +52,11 @@ impl ContentEncoding {
                 decoder.read_to_end(&mut decoded).unwrap();
                 decoded
             }
-            Self::Zstd => {
-                let mut decoder = zstd::stream::Decoder::new(data).unwrap();
-                let mut decoded = Vec::new();
-                decoder.read_to_end(&mut decoded).unwrap();
-                decoded
-            }
             */
+            Self::Zstd => {
+                let decoded = zstd::decode_all(data).or(Err(()))?;
+                String::from_utf8(decoded).or(Err(()))
+            }
         }
     }
 }
@@ -87,8 +84,10 @@ impl PrettyRequest {
         let headers_str = Self::format_headers(req.headers(), highlight_headers);
         let encoding = Self::get_encrpytion(req.headers());
 
-        let body_bytes = req.collect().await.unwrap().to_bytes();
-        let body_str = Self::format_message(&body_bytes, encoding.as_ref());
+        let body_str = (req.collect().await).map_or_else(
+            |_| String::from("(error reading body)"),
+            |body| Self::format_message(&body.to_bytes(), encoding.as_ref()),
+        );
 
         Self {
             method,

@@ -13,3 +13,4 @@ http-body-util = "0.1.2"
 hyper = { version= "1.5", features = ["server", "http1"] }
 hyper-util = { version = "0.1.10", features = ["tokio"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+zstd = "0.13.2"
