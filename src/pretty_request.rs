@@ -1,46 +1,11 @@
+use crate::types::ContentEncoding;
 use colored::Colorize;
-use flate2::read::{DeflateDecoder, GzDecoder};
 use http::header::HeaderMap;
 use http_body_util::BodyExt;
 use hyper::body::Bytes;
 use hyper::Request;
 use std::fmt;
-use std::io::prelude::*;
 use std::str;
-
-enum ContentEncoding {
-    Gzip,
-    Deflate,
-    Br,
-    Zstd,
-}
-
-fn generic_decoder(decoder: &mut dyn Read) -> Result<String, ()> {
-    let mut result = String::new();
-    decoder.read_to_string(&mut result).or(Err(()))?;
-    Ok(result)
-}
-
-impl ContentEncoding {
-    fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "gzip" => Some(Self::Gzip),
-            "deflate" => Some(Self::Deflate),
-            "br" => Some(Self::Br),
-            "zstd" => Some(Self::Zstd),
-            _ => None,
-        }
-    }
-
-    fn decode(&self, data: &[u8]) -> Result<String, ()> {
-        match self {
-            Self::Gzip => generic_decoder(&mut GzDecoder::new(data)),
-            Self::Deflate => generic_decoder(&mut DeflateDecoder::new(data)),
-            Self::Br => generic_decoder(&mut brotli::Decompressor::new(data, 4096)),
-            Self::Zstd => generic_decoder(&mut zstd::Decoder::new(data).unwrap()),
-        }
-    }
-}
 
 pub struct PrettyRequest {
     method: String,

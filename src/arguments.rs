@@ -1,49 +1,5 @@
-use clap::{Parser, ValueEnum};
-use std::error::Error;
-use std::fmt;
-use std::str::FromStr;
-
-#[derive(ValueEnum, Clone)]
-pub enum ContentType {
-    /// JSON (`application/json`)
-    Json,
-    /// Text (`text/plain`)
-    Text,
-    /// HTML (`text/html`)
-    Html,
-}
-
-impl fmt::Display for ContentType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mime_type = match self {
-            Self::Json => "application/json",
-            Self::Text => "text/plain",
-            Self::Html => "text/html",
-        };
-        write!(f, "{mime_type}")
-    }
-}
-
-#[derive(Clone)]
-pub struct Header {
-    pub key: String,
-    pub value: String,
-}
-
-impl FromStr for Header {
-    type Err = Box<dyn Error + Send + Sync>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.splitn(2, ':').collect();
-        if parts.len() != 2 {
-            return Err(From::from(format!("Improperly formatted header: {s}")));
-        }
-        Ok(Self {
-            key: parts[0].trim().to_string(),
-            value: parts[1].trim().to_string(),
-        })
-    }
-}
+use crate::types::{ContentType, Header};
+use clap::Parser;
 
 /// A simple HTTP server that prints receivec requests and returns a JSON response
 #[derive(Parser)]

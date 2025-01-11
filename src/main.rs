@@ -13,6 +13,7 @@ use requests::handle_request;
 mod arguments;
 mod pretty_request;
 mod requests;
+mod types;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
