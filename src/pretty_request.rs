@@ -3,8 +3,66 @@ use http::header::HeaderMap;
 use http_body_util::BodyExt;
 use hyper::body::Bytes;
 use hyper::Request;
+use flate2::read::{GzDecoder, DeflateDecoder};
+use std::io::prelude::*;
 use std::fmt;
 use std::str;
+
+enum ContentEncoding {
+    Gzip,
+    Deflate,
+    Br,
+    Zstd,
+}
+
+impl ContentEncoding {
+    fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "gzip" => Some(Self::Gzip),
+            "deflate" => Some(Self::Deflate),
+            "br" => Some(Self::Br),
+            "zstd" => Some(Self::Zstd),
+            _ => None,
+        }
+    }
+
+    fn decode(&self, data: &[u8]) -> Result<String, ()> {
+        match self {
+            Self::Gzip => {
+               let mut gz = GzDecoder::new(&data[..]);
+               let mut s = String::new();
+               if let Err(_) = gz.read_to_string(&mut s) {
+                   return Err(())
+               }
+               Ok(s)
+            }
+            Self::Deflate => {
+               let mut decoder = DeflateDecoder::new(data);
+               let mut s = String::new();
+               if let Err(_) = decoder.read_to_string(&mut s) {
+                   return Err(())
+               }
+               Ok(s)
+            }
+            Self::Br => Ok("Brotli has not been implemented".to_string()),
+            Self::Zstd => Ok("Zstd has not been implemented".to_string()),
+            /*
+            Self::Br => {
+                let mut decoder = brotli::Decompressor::new(data, 4096);
+                let mut decoded = Vec::new();
+                decoder.read_to_end(&mut decoded).unwrap();
+                decoded
+            }
+            Self::Zstd => {
+                let mut decoder = zstd::stream::Decoder::new(data).unwrap();
+                let mut decoded = Vec::new();
+                decoder.read_to_end(&mut decoded).unwrap();
+                decoded
+            }
+            */
+        }
+    }
+}
 
 pub struct PrettyRequest {
     method: String,
@@ -12,6 +70,9 @@ pub struct PrettyRequest {
     headers_str: String,
     body_str: String,
 }
+
+/// The list was gathered from the mozilla docs
+/// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding#syntax
 
 impl PrettyRequest {
     pub async fn from_hyper_request(
@@ -25,9 +86,10 @@ impl PrettyRequest {
             .map_or_else(|| String::from("/"), |p| p.as_str().to_owned());
 
         let headers_str = Self::format_headers(req.headers(), highlight_headers);
+        let encoding = Self::get_encrpytion(req.headers());
 
         let body_bytes = req.collect().await.unwrap().to_bytes();
-        let body_str = Self::format_message(&body_bytes);
+        let body_str = Self::format_message(&body_bytes, &encoding);
 
         Self {
             method,
@@ -37,11 +99,21 @@ impl PrettyRequest {
         }
     }
 
-    fn format_message(body_bytes: &Bytes) -> &str {
+    fn format_message(body_bytes: &Bytes, encryption: &Option<ContentEncoding>) -> String {
         if body_bytes.is_empty() {
-            return "(no body)";
+            return String::from("(no body)");
         }
-        str::from_utf8(body_bytes).map_or("(non-UTF8 data)", |body_str| body_str)
+        match encryption {
+            None => str::from_utf8(body_bytes).map_or("(non-UTF8 data)", |body_str| body_str).to_string(),
+            Some(value) => value.decode(body_bytes).map_or("(error decoding)".to_string(), |body_str| body_str),
+        }
+    }
+
+    fn get_encrpytion(headers: &HeaderMap) -> Option<ContentEncoding> {
+        headers
+            .get("content-encoding")
+            .and_then(|encoding| encoding.to_str().ok())
+            .and_then(ContentEncoding::from_str)
     }
 
     fn format_headers(headers: &HeaderMap, highlight_headers: &[String]) -> String {
@@ -67,6 +139,7 @@ impl fmt::Display for PrettyRequest {
         writeln!(f, "Path: {}", self.path)?;
         writeln!(f, "Headers:\n{}", self.headers_str)?;
         writeln!(f, "Body: {}", self.body_str)?;
+        writeln!(f, "{}", "=".repeat(50))?;
         Ok(())
     }
 }

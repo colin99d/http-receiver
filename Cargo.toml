@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
 colored = "2.2.0"
+flate2 = "1.0.35"
 http = "1.2.0"
 http-body = "1.0.1"
 http-body-util = "0.1.2"
