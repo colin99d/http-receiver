@@ -17,13 +17,7 @@ fn empty() -> BoxBody {
     Empty::new().map_err(|never| match never {}).boxed()
 }
 
-pub async fn handle_request(
-    req: Request<hyper::body::Incoming>,
-    config: &Config,
-) -> Result<Response<BoxBody>> {
-    let pretty_req = PrettyRequest::from_hyper_request(req, &config.highlight_headers).await;
-    println!("{pretty_req}");
-
+fn generate_response(config: &Config) -> http::Result<Response<BoxBody>> {
     let body = config
         .content
         .as_ref()
@@ -37,6 +31,15 @@ pub async fn handle_request(
         response_builder = response_builder.header(&header.key, &header.value);
     }
 
-    let response = response_builder.body(body).unwrap();
+    response_builder.body(body)
+}
+
+pub async fn handle_request(
+    req: Request<hyper::body::Incoming>,
+    config: &Config,
+) -> Result<Response<BoxBody>> {
+    let pretty_req = PrettyRequest::from_hyper_request(req, &config.highlight_headers).await;
+    println!("{pretty_req}");
+    let response = generate_response(config).unwrap();
     Ok(response)
 }

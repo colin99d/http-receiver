@@ -10,7 +10,7 @@ pub enum ContentType {
     /// Text (`text/plain`)
     Text,
     /// HTML (`text/html`)
-    Html, // Unknown(String),
+    Html,
 }
 
 impl fmt::Display for ContentType {
@@ -19,7 +19,6 @@ impl fmt::Display for ContentType {
             Self::Json => "application/json",
             Self::Text => "text/plain",
             Self::Html => "text/html",
-            // Self::Unknown(ref custom) => custom,
         };
         write!(f, "{mime_type}")
     }
