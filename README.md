@@ -1,7 +1,7 @@
 # Http Receiver
 
 Http Receiver is a simple server. It logs all information that is sent to it,
-and then returns the information provided to it on startup every time.
+and then returns the information provided to it on startup.
 
 This tool simplifies frontend and backend development by allowing you to
 do two things:
