@@ -1,11 +1,11 @@
 use colored::Colorize;
+use flate2::read::{DeflateDecoder, GzDecoder};
 use http::header::HeaderMap;
 use http_body_util::BodyExt;
 use hyper::body::Bytes;
 use hyper::Request;
-use flate2::read::{GzDecoder, DeflateDecoder};
-use std::io::prelude::*;
 use std::fmt;
+use std::io::prelude::*;
 use std::str;
 
 enum ContentEncoding {
@@ -29,20 +29,20 @@ impl ContentEncoding {
     fn decode(&self, data: &[u8]) -> Result<String, ()> {
         match self {
             Self::Gzip => {
-               let mut gz = GzDecoder::new(&data[..]);
-               let mut s = String::new();
-               if let Err(_) = gz.read_to_string(&mut s) {
-                   return Err(())
-               }
-               Ok(s)
+                let mut gz = GzDecoder::new(data);
+                let mut s = String::new();
+                if gz.read_to_string(&mut s).is_err() {
+                    return Err(());
+                }
+                Ok(s)
             }
             Self::Deflate => {
-               let mut decoder = DeflateDecoder::new(data);
-               let mut s = String::new();
-               if let Err(_) = decoder.read_to_string(&mut s) {
-                   return Err(())
-               }
-               Ok(s)
+                let mut decoder = DeflateDecoder::new(data);
+                let mut s = String::new();
+                if decoder.read_to_string(&mut s).is_err() {
+                    return Err(());
+                }
+                Ok(s)
             }
             Self::Br => Ok("Brotli has not been implemented".to_string()),
             Self::Zstd => Ok("Zstd has not been implemented".to_string()),
@@ -72,8 +72,7 @@ pub struct PrettyRequest {
 }
 
 /// The list was gathered from the mozilla docs
-/// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding#syntax
-
+/// <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding#syntax>
 impl PrettyRequest {
     pub async fn from_hyper_request(
         req: Request<hyper::body::Incoming>,
@@ -89,23 +88,27 @@ impl PrettyRequest {
         let encoding = Self::get_encrpytion(req.headers());
 
         let body_bytes = req.collect().await.unwrap().to_bytes();
-        let body_str = Self::format_message(&body_bytes, &encoding);
+        let body_str = Self::format_message(&body_bytes, encoding.as_ref());
 
         Self {
             method,
             path,
             headers_str,
-            body_str: body_str.to_string(),
+            body_str,
         }
     }
 
-    fn format_message(body_bytes: &Bytes, encryption: &Option<ContentEncoding>) -> String {
+    fn format_message(body_bytes: &Bytes, encryption: Option<&ContentEncoding>) -> String {
         if body_bytes.is_empty() {
             return String::from("(no body)");
         }
         match encryption {
-            None => str::from_utf8(body_bytes).map_or("(non-UTF8 data)", |body_str| body_str).to_string(),
-            Some(value) => value.decode(body_bytes).map_or("(error decoding)".to_string(), |body_str| body_str),
+            None => str::from_utf8(body_bytes)
+                .map_or("(non-UTF8 data)", |body_str| body_str)
+                .to_string(),
+            Some(value) => value
+                .decode(body_bytes)
+                .map_or("(error decoding)".to_string(), |body_str| body_str),
         }
     }
 
