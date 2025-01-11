@@ -6,7 +6,7 @@ and then returns the information provided to it on startup.
 This tool simplifies frontend and backend development by allowing you to
 do two things:
 1. View the information you send from a request. This is useful when working on a backend that hits something else.
-2. Receive any data you want when receiving a response. This can be used to test how your system handles various requests.
+2. Receive any data you want when receiving a response. This can be used to test how your system handles various data.
 
 ## Installation
 
