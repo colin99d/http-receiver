@@ -15,6 +15,12 @@ enum ContentEncoding {
     Zstd,
 }
 
+fn generic_decoder(decoder: &mut dyn Read) -> Result<String, ()> {
+    let mut result = String::new();
+    decoder.read_to_string(&mut result).or(Err(()))?;
+    Ok(result)
+}
+
 impl ContentEncoding {
     fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
@@ -28,35 +34,10 @@ impl ContentEncoding {
 
     fn decode(&self, data: &[u8]) -> Result<String, ()> {
         match self {
-            Self::Gzip => {
-                let mut gz = GzDecoder::new(data);
-                let mut s = String::new();
-                if gz.read_to_string(&mut s).is_err() {
-                    return Err(());
-                }
-                Ok(s)
-            }
-            Self::Deflate => {
-                let mut decoder = DeflateDecoder::new(data);
-                let mut s = String::new();
-                if decoder.read_to_string(&mut s).is_err() {
-                    return Err(());
-                }
-                Ok(s)
-            }
-            Self::Br => Ok("Brotli has not been implemented".to_string()),
-            /*
-            Self::Br => {
-                let mut decoder = brotli::Decompressor::new(data, 4096);
-                let mut decoded = Vec::new();
-                decoder.read_to_end(&mut decoded).unwrap();
-                decoded
-            }
-            */
-            Self::Zstd => {
-                let decoded = zstd::decode_all(data).or(Err(()))?;
-                String::from_utf8(decoded).or(Err(()))
-            }
+            Self::Gzip => generic_decoder(&mut GzDecoder::new(data)),
+            Self::Deflate => generic_decoder(&mut DeflateDecoder::new(data)),
+            Self::Br => generic_decoder(&mut brotli::Decompressor::new(data, 4096)),
+            Self::Zstd => generic_decoder(&mut zstd::Decoder::new(data).unwrap()),
         }
     }
 }
