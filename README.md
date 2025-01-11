@@ -46,7 +46,7 @@ Returning a custom set cookie header:
 http-receiver -H 'Set-Cookie: sessionId=abc123; Path=/; HttpOnly'
 ```
 
-Compressing the returned text using gzip:
+Compressing the given text using gzip:
 ```bash
 http-receiver -c success -e gzip
 ```
