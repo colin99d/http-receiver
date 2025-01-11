@@ -1,8 +1,10 @@
 use clap::ValueEnum;
 use flate2::read::{DeflateDecoder, GzDecoder};
+use flate2::write::{DeflateEncoder, GzEncoder};
+use flate2::Compression;
 use std::error::Error;
 use std::fmt;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::str::FromStr;
 
 #[derive(ValueEnum, Clone)]
@@ -53,11 +55,24 @@ fn generic_decoder(decoder: &mut dyn Read) -> Result<String, ()> {
     Ok(result)
 }
 
+#[derive(ValueEnum, Clone)]
 pub enum ContentEncoding {
     Gzip,
     Deflate,
     Br,
     Zstd,
+}
+
+impl fmt::Display for ContentEncoding {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let encoding = match self {
+            Self::Gzip => "gzip",
+            Self::Deflate => "deflate",
+            Self::Br => "br",
+            Self::Zstd => "zstd",
+        };
+        write!(f, "{encoding}")
+    }
 }
 
 impl ContentEncoding {
@@ -77,6 +92,69 @@ impl ContentEncoding {
             Self::Deflate => generic_decoder(&mut DeflateDecoder::new(data)),
             Self::Br => generic_decoder(&mut brotli::Decompressor::new(data, 4096)),
             Self::Zstd => generic_decoder(&mut zstd::Decoder::new(data).unwrap()),
+        }
+    }
+
+    pub fn encode(&self, data: &str) -> Result<Vec<u8>, ()> {
+        match self {
+            Self::Gzip => {
+                let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+                encoder.write_all(data.as_bytes()).or(Err(()))?;
+                encoder.finish().or(Err(()))
+            }
+            Self::Deflate => {
+                let mut encoder = DeflateEncoder::new(Vec::new(), Compression::default());
+                encoder.write_all(data.as_bytes()).or(Err(()))?;
+                encoder.finish().or(Err(()))
+            }
+            Self::Br => {
+                let mut encoder = brotli::CompressorWriter::new(Vec::new(), 4096, 11, 22);
+                encoder.write_all(data.as_bytes()).or(Err(()))?;
+                encoder.flush().or(Err(()))?;
+                Ok(encoder.into_inner())
+            }
+            Self::Zstd => {
+                let mut encoder = zstd::Encoder::new(Vec::new(), 0).unwrap();
+                encoder.write_all(data.as_bytes()).or(Err(()))?;
+                encoder.finish().or(Err(()))
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Config {
+    pub status_code: u16,
+    content: Option<String>,
+    pub content_type: ContentType,
+    pub content_encoding: Option<ContentEncoding>,
+    pub headers: Vec<Header>,
+    pub highlight_headers: Vec<String>,
+}
+
+impl Config {
+    pub const fn new(
+        status_code: u16,
+        content: Option<String>,
+        content_type: ContentType,
+        content_encoding: Option<ContentEncoding>,
+        headers: Vec<Header>,
+        highlight_headers: Vec<String>,
+    ) -> Self {
+        Self {
+            status_code,
+            content,
+            content_type,
+            content_encoding,
+            headers,
+            highlight_headers,
+        }
+    }
+    pub fn content(&self) -> Option<Vec<u8>> {
+        let content = self.content.as_ref()?;
+        match &self.content_encoding {
+            None => Some(content.clone().into_bytes()),
+            Some(encoding) => encoding.encode(content).ok(),
         }
     }
 }

@@ -2,8 +2,8 @@ use http_body_util::{BodyExt, Empty, Full};
 use hyper::body::Bytes;
 use hyper::{Request, Response, Result};
 
-use crate::arguments::Config;
 use crate::pretty_request::PrettyRequest;
+use crate::types::Config;
 
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
 
@@ -18,20 +18,20 @@ fn empty() -> BoxBody {
 }
 
 fn generate_response(config: &Config) -> http::Result<Response<BoxBody>> {
-    let body = config
-        .content
-        .as_ref()
-        .map_or_else(empty, |content| full(content.clone()));
+    let final_body = config.content().map_or_else(empty, full);
 
     let mut response_builder = Response::builder()
         .status(config.status_code)
         .header("Content-Type", config.content_type.to_string());
+    if let Some(encoding) = &config.content_encoding {
+        response_builder = response_builder.header("Content-Encoding", encoding.to_string());
+    }
 
     for header in &config.headers {
         response_builder = response_builder.header(&header.key, &header.value);
     }
 
-    response_builder.body(body)
+    response_builder.body(final_body)
 }
 
 pub async fn handle_request(
