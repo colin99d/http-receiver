@@ -9,6 +9,10 @@ pub struct Args {
     #[arg(short, long, default_value = "9000")]
     port: u16,
 
+    /// The host address to bind to (e.g. "127.0.0.1" or "0.0.0.0")
+    #[arg(short = 'a', long, default_value = "127.0.0.1")]
+    host: String,
+
     /// The status code to return in the response
     #[arg(short, long, default_value = "200")]
     status_code: u16,
@@ -52,5 +56,9 @@ impl Args {
 
     pub const fn get_port(&self) -> u16 {
         self.port
+    }
+
+    pub fn get_host(&self) -> &str {
+        &self.host
     }
 }
