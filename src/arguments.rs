@@ -42,11 +42,20 @@ pub struct Args {
     highlight_headers: Vec<String>,
 }
 
+pub fn get_content_bytes(content: Option<&str>, encoding: Option<&ContentEncoding>) -> Option<Vec<u8>> {
+    let clean_content = content?;
+    match encoding {
+        None => Some(clean_content.as_bytes().to_vec()),
+        Some(encoding) => encoding.encode(clean_content).ok(),
+    }
+}
+
 impl Args {
     pub fn to_config(&self) -> Config {
+        let content = get_content_bytes(self.content.as_deref(), self.content_encoding.as_ref());
         Config::new(
             self.status_code,
-            self.content.clone(),
+            content,
             self.content_type.clone(),
             self.content_encoding.clone(),
             self.headers.clone(),

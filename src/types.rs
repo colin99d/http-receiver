@@ -125,7 +125,7 @@ impl ContentEncoding {
 #[derive(Clone)]
 pub struct Config {
     pub status_code: u16,
-    content: Option<String>,
+    content: Option<Vec<u8>>,
     pub content_type: ContentType,
     pub content_encoding: Option<ContentEncoding>,
     pub headers: Vec<Header>,
@@ -135,7 +135,7 @@ pub struct Config {
 impl Config {
     pub const fn new(
         status_code: u16,
-        content: Option<String>,
+        content: Option<Vec<u8>>,
         content_type: ContentType,
         content_encoding: Option<ContentEncoding>,
         headers: Vec<Header>,
@@ -150,11 +150,8 @@ impl Config {
             highlight_headers,
         }
     }
+
     pub fn content(&self) -> Option<Vec<u8>> {
-        let content = self.content.as_ref()?;
-        match &self.content_encoding {
-            None => Some(content.clone().into_bytes()),
-            Some(encoding) => encoding.encode(content).ok(),
-        }
+        self.content.clone()
     }
 }
