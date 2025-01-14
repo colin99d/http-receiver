@@ -50,3 +50,8 @@ Compressing the given text using gzip:
 ```bash
 http-receiver -c success -e gzip
 ```
+
+Change the host to `0.0.0.0` to allow Docker connections:
+```bash
+http-receiver -a 0.0.0.0
+```
