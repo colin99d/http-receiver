@@ -48,18 +48,17 @@ pub fn get_content_bytes(
     content: Option<&str>,
     encoding: Option<&ContentEncoding>,
 ) -> Option<Vec<u8>> {
-    let clean_content = content?;
-    if let Some(path) = clean_content.strip_prefix('@') {
-        if let Ok(content) = std::fs::read(path) {
-            return Some(content);
+    let clean = content?;
+    if let Some(path) = clean.strip_prefix('@') {
+        if let Ok(data) = std::fs::read(path) {
+            return Some(data);
         }
-        let warning =
-            format!("Failed to read file: {path}, will send the value '{clean_content}' instead.");
+        let warning = format!("Failed to read file: {path}, sending the value '{clean}' instead.");
         println!("{}", warning.yellow());
     }
     match encoding {
-        None => Some(clean_content.as_bytes().to_vec()),
-        Some(encoding) => encoding.encode(clean_content).ok(),
+        None => Some(clean.as_bytes().to_vec()),
+        Some(encoding) => encoding.encode(clean).ok(),
     }
 }
 
