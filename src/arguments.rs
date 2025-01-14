@@ -1,6 +1,6 @@
 use crate::types::{Config, ContentEncoding, ContentType, Header};
-use colored::Colorize;
 use clap::Parser;
+use colored::Colorize;
 
 /// A simple HTTP server that prints received requests and returns a JSON response
 #[derive(Parser)]
@@ -43,16 +43,18 @@ pub struct Args {
     highlight_headers: Vec<String>,
 }
 
-pub fn get_content_bytes(content: Option<&str>, encoding: Option<&ContentEncoding>) -> Option<Vec<u8>> {
+pub fn get_content_bytes(
+    content: Option<&str>,
+    encoding: Option<&ContentEncoding>,
+) -> Option<Vec<u8>> {
     let clean_content = content?;
-    if clean_content.starts_with('@') {
-        let path = &clean_content[1..];
+    if let Some(path) = clean_content.strip_prefix('@') {
         if let Ok(content) = std::fs::read(path) {
             return Some(content);
-        } else {
-            let warning = format!("Failed to read file: {}, will send the value '{}' instead.", path, clean_content);
-            println!("{}", warning.yellow());
         }
+        let warning =
+            format!("Failed to read file: {path}, will send the value '{clean_content}' instead.");
+        println!("{}", warning.yellow());
     }
     match encoding {
         None => Some(clean_content.as_bytes().to_vec()),
