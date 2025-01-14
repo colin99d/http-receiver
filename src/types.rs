@@ -91,7 +91,7 @@ impl ContentEncoding {
             Self::Gzip => generic_decoder(&mut GzDecoder::new(data)),
             Self::Deflate => generic_decoder(&mut DeflateDecoder::new(data)),
             Self::Br => generic_decoder(&mut brotli::Decompressor::new(data, 4096)),
-            Self::Zstd => generic_decoder(&mut zstd::Decoder::new(data).unwrap()),
+            Self::Zstd => generic_decoder(&mut zstd::Decoder::new(data).or(Err(()))?),
         }
     }
 
@@ -114,7 +114,7 @@ impl ContentEncoding {
                 Ok(encoder.into_inner())
             }
             Self::Zstd => {
-                let mut encoder = zstd::Encoder::new(Vec::new(), 0).unwrap();
+                let mut encoder = zstd::Encoder::new(Vec::new(), 0).or(Err(()))?;
                 encoder.write_all(data.as_bytes()).or(Err(()))?;
                 encoder.finish().or(Err(()))
             }

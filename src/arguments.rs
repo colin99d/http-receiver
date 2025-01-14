@@ -80,7 +80,7 @@ impl Args {
         self.port
     }
 
-    pub fn get_host(&self) -> IpAddr {
-        self.host.clone()
+    pub const fn get_host(&self) -> IpAddr {
+        self.host
     }
 }

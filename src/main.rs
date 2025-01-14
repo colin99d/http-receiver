@@ -1,4 +1,5 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![allow(clippy::option_if_let_else)]
 use clap::Parser;
 use colored::Colorize;
 use hyper::server::conn::http1;
