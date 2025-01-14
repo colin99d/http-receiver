@@ -20,8 +20,7 @@ async fn main() -> std::io::Result<()> {
     let args = Args::parse();
     let config = args.to_config();
 
-    let host: std::net::IpAddr = args.get_host().parse().expect("Invalid host address");
-    let addr = SocketAddr::new(host, args.get_port());
+    let addr = SocketAddr::new(args.get_host(), args.get_port());
     let listener = TcpListener::bind(addr).await?;
 
     println!("{} Listening on http://{}", "[Started]".green(), addr);
