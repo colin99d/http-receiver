@@ -91,7 +91,7 @@ impl ContentEncoding {
             Self::Gzip => generic_decoder(&mut GzDecoder::new(data)),
             Self::Deflate => generic_decoder(&mut DeflateDecoder::new(data)),
             Self::Br => generic_decoder(&mut brotli::Decompressor::new(data, 4096)),
-            Self::Zstd => generic_decoder(&mut zstd::Decoder::new(data).unwrap()),
+            Self::Zstd => generic_decoder(&mut zstd::Decoder::new(data).or(Err(()))?),
         }
     }
 
@@ -114,7 +114,7 @@ impl ContentEncoding {
                 Ok(encoder.into_inner())
             }
             Self::Zstd => {
-                let mut encoder = zstd::Encoder::new(Vec::new(), 0).unwrap();
+                let mut encoder = zstd::Encoder::new(Vec::new(), 0).or(Err(()))?;
                 encoder.write_all(data.as_bytes()).or(Err(()))?;
                 encoder.finish().or(Err(()))
             }
@@ -125,7 +125,7 @@ impl ContentEncoding {
 #[derive(Clone)]
 pub struct Config {
     pub status_code: u16,
-    content: Option<String>,
+    content: Option<Vec<u8>>,
     pub content_type: ContentType,
     pub content_encoding: Option<ContentEncoding>,
     pub headers: Vec<Header>,
@@ -135,7 +135,7 @@ pub struct Config {
 impl Config {
     pub const fn new(
         status_code: u16,
-        content: Option<String>,
+        content: Option<Vec<u8>>,
         content_type: ContentType,
         content_encoding: Option<ContentEncoding>,
         headers: Vec<Header>,
@@ -150,11 +150,8 @@ impl Config {
             highlight_headers,
         }
     }
+
     pub fn content(&self) -> Option<Vec<u8>> {
-        let content = self.content.as_ref()?;
-        match &self.content_encoding {
-            None => Some(content.clone().into_bytes()),
-            Some(encoding) => encoding.encode(content).ok(),
-        }
+        self.content.clone()
     }
 }

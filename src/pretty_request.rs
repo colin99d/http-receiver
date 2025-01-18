@@ -1,6 +1,7 @@
 use crate::types::ContentEncoding;
 use colored::Colorize;
 use http::header::HeaderMap;
+use http_body::Body as HttpBody;
 use http_body_util::BodyExt;
 use hyper::body::Bytes;
 use hyper::Request;
@@ -17,10 +18,11 @@ pub struct PrettyRequest {
 /// The list was gathered from the mozilla docs
 /// <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding#syntax>
 impl PrettyRequest {
-    pub async fn from_hyper_request(
-        req: Request<hyper::body::Incoming>,
-        highlight_headers: &[String],
-    ) -> Self {
+    pub async fn from_hyper_request<B>(req: Request<B>, highlight_headers: &[String]) -> Self
+    where
+        B: HttpBody<Data = Bytes> + Send + 'static,
+        B::Error: std::error::Error + Send + Sync + 'static,
+    {
         let method = req.method().to_string();
         let path = req
             .uri()
