@@ -5,7 +5,11 @@ use flate2::Compression;
 use std::error::Error;
 use std::fmt;
 use std::io::{Read, Write};
+use std::net::SocketAddr;
 use std::str::FromStr;
+use hickory_resolver::config::{ResolverConfig, ResolverOpts};
+use hickory_resolver::TokioAsyncResolver;
+use url::Url;
 
 #[derive(ValueEnum, Clone)]
 pub enum ContentType {
@@ -75,17 +79,23 @@ impl fmt::Display for ContentEncoding {
     }
 }
 
-impl ContentEncoding {
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
+impl FromStr for ContentEncoding {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let result = match s.to_lowercase().as_str() {
             "gzip" => Some(Self::Gzip),
             "deflate" => Some(Self::Deflate),
             "br" => Some(Self::Br),
             "zstd" => Some(Self::Zstd),
             _ => None,
-        }
+        };
+        result.ok_or(From::from(format!("Invalid content encoding: {s}")))
     }
 
+}
+
+impl ContentEncoding {
     pub fn decode(&self, data: &[u8]) -> Result<String, ()> {
         match self {
             Self::Gzip => generic_decoder(&mut GzDecoder::new(data)),
@@ -153,5 +163,58 @@ impl Config {
 
     pub fn content(&self) -> Option<Vec<u8>> {
         self.content.clone()
+    }
+}
+
+
+#[derive(Clone)]
+pub enum ParseSocketAddr {
+    SocketAddr(SocketAddr),
+    Url(Url),
+}
+
+
+impl FromStr for ParseSocketAddr {
+    type Err = Box<dyn Error + Send + Sync>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Ok(url) = SocketAddr::from_str(s) {
+            return Ok( Self::SocketAddr(url) )
+        }
+        let url = Url::parse(s).map_err(|e| format!("Could not parse as a socket or url: {e}"))?;
+        // These checks are added so that we throw URL errors in CLAP
+        if url.host_str().is_none() {
+            return Err(From::from("Poorly formatted URL"))
+        }
+        if url.port_or_known_default().is_none() {
+            return Err(From::from("Poorly formatted URL"))
+        }
+        Ok( Self::Url(url) )
+    }
+}
+
+
+impl ParseSocketAddr {
+    pub async fn to_socket(&self) -> Result<SocketAddr, String> {
+        match self {
+            Self::SocketAddr(addr) => Ok(addr.clone()),
+            Self::Url(url) => {
+       let host = url
+            .host_str()
+            .ok_or_else(|| "URL missing host".to_string())?;
+        let port = url
+            .port_or_known_default()
+            .ok_or_else(|| "No port in URL, and no default known for the scheme".to_string())?;
+        let resolver = TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
+        let response = resolver
+            .lookup_ip(host).await
+            .map_err(|e| format!("DNS resolution error for '{host}': {e}"))?;
+        let ip = response.iter().next().ok_or_else(|| {
+            format!("No IP addresses found for '{host}'")
+        })?;
+        let value = SocketAddr::new(ip, port);
+        Ok(value)
+            }
+        }
     }
 }
