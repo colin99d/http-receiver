@@ -1,4 +1,4 @@
-use crate::types::{Config, ContentEncoding, ContentType, Header, ParseSocketAddr};
+use crate::types::{Config, ContentEncoding, ContentType, Header};
 use clap::Parser;
 use colored::Colorize;
 use std::net::{SocketAddr, IpAddr};
@@ -20,7 +20,7 @@ pub struct Args {
     /// what a response contains are ignored, and the response from the forwarded request
     /// is sent without modification.
     #[arg(short, long)]
-    forward: Option<ParseSocketAddr>,
+    forward: Option<SocketAddr>,
 
     /// The status code to return in the response
     #[arg(short, long, default_value = "200")]
@@ -105,9 +105,8 @@ impl Args {
         self.host
     }
 
-    pub async fn get_socket(&self) -> Option<Result<SocketAddr, String>> {
-        let forward = self.forward.as_ref()?;
-        Some(forward.to_socket().await)
+    pub fn get_socket(&self) -> Option<SocketAddr> {
+       self.forward 
     }
 
     pub const fn get_address(&self) -> SocketAddr {
