@@ -12,6 +12,7 @@ use tokio::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use http::Uri;
 use std::net::SocketAddr;
+use std::io::{Read, Write};
 
 use arguments::Args;
 use requests::{handle_request, empty};
@@ -160,7 +161,7 @@ async fn fetch_url(url: hyper::Uri) -> Result<(), ()> {
     while let Some(next) = res.frame().await {
         let frame = next.unwrap();
         if let Some(chunk) = frame.data_ref() {
-            std::io::stdout().write_all(chunk).await.unwrap();
+            std::io::stdout().write_all(chunk).unwrap();
         }
     }
 
