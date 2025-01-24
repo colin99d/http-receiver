@@ -11,7 +11,7 @@ use http::Uri;
 use std::net::SocketAddr;
 
 use arguments::Args;
-use requests::{handle_request, empty};
+use requests::handle_request;
 use types::Config;
 
 mod arguments;
@@ -19,11 +19,7 @@ mod pretty_request;
 mod requests;
 mod types;
 
-async fn echo_server(config: Config, address: &SocketAddr) -> std::io::Result<()> {
-    let listener = TcpListener::bind(address).await?;
-
-    println!("{} Listening on http://{}", "[Started]".green(), address);
-
+async fn echo_server(config: Config, listener: TcpListener) -> std::io::Result<()> {
     loop {
         let (stream, _) = listener.accept().await?;
         let io = TokioIo::new(stream);
@@ -40,15 +36,8 @@ async fn echo_server(config: Config, address: &SocketAddr) -> std::io::Result<()
     }
 }
 
-async fn gateway_server(in_addr: &SocketAddr, out_addr: SocketAddr, highlight: &[String]) -> std::io::Result<()> {
-
-    let listener = TcpListener::bind(in_addr).await?;
-
+async fn gateway_server(listener: TcpListener, out_addr: SocketAddr, highlight: &[String]) -> std::io::Result<()> {
     let out_arc = Arc::new(out_addr);
-
-    println!("Listening on http://{}", in_addr);
-    println!("Proxying on {}", out_addr);
-
     loop {
         let (stream, _) = listener.accept().await?;
         let io = TokioIo::new(stream);
@@ -91,9 +80,13 @@ async fn main() -> std::io::Result<()> {
     let args = Args::parse();
     let config = args.to_config();
     let address = args.get_address();
+
+    let listener = TcpListener::bind(address).await?;
+    println!("{} Listening on http://{}", "[Started]".green(), address);
     if let Some(socket) = args.get_socket() {
-        gateway_server(&address, socket, &args.get_highlight_headers()).await
+        println!("Proxying on {}", socket);
+        gateway_server(listener, socket, &args.get_highlight_headers()).await
     } else {
-        echo_server(config, &address).await
+        echo_server(config, listener).await
     }
 }
