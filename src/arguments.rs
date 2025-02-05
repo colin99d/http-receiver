@@ -1,7 +1,8 @@
 use crate::types::{Config, ContentEncoding, ContentType, Header};
 use clap::Parser;
 use colored::Colorize;
-use std::net::IpAddr;
+use std::net::{SocketAddr, IpAddr};
+
 
 /// A simple HTTP server that prints received requests and returns a JSON response
 #[derive(Parser)]
@@ -14,6 +15,12 @@ pub struct Args {
     /// The host address to bind to (e.g. "127.0.0.1" or "0.0.0.0")
     #[arg(short = 'a', long, default_value = "127.0.0.1")]
     host: IpAddr,
+
+    /// The address to forward requests to, if this is selected all options that affect
+    /// what a response contains are ignored, and the response from the forwarded request
+    /// is sent without modification.
+    #[arg(short, long)]
+    forward: Option<SocketAddr>,
 
     /// The status code to return in the response
     #[arg(short, long, default_value = "200")]
@@ -96,6 +103,18 @@ impl Args {
 
     pub const fn get_host(&self) -> IpAddr {
         self.host
+    }
+
+    pub fn get_socket(&self) -> Option<SocketAddr> {
+       self.forward 
+    }
+
+    pub const fn get_address(&self) -> SocketAddr {
+        SocketAddr::new(self.get_host(), self.get_port())
+    }
+
+    pub fn get_highlight_headers(&self) -> Vec<String> {
+        self.highlight_headers.clone()
     }
 }
 

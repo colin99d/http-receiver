@@ -75,17 +75,23 @@ impl fmt::Display for ContentEncoding {
     }
 }
 
-impl ContentEncoding {
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
+impl FromStr for ContentEncoding {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let result = match s.to_lowercase().as_str() {
             "gzip" => Some(Self::Gzip),
             "deflate" => Some(Self::Deflate),
             "br" => Some(Self::Br),
             "zstd" => Some(Self::Zstd),
             _ => None,
-        }
+        };
+        result.ok_or(From::from(format!("Invalid content encoding: {s}")))
     }
 
+}
+
+impl ContentEncoding {
     pub fn decode(&self, data: &[u8]) -> Result<String, ()> {
         match self {
             Self::Gzip => generic_decoder(&mut GzDecoder::new(data)),

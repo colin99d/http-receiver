@@ -7,6 +7,7 @@ use hyper::body::Bytes;
 use hyper::Request;
 use std::fmt;
 use std::str;
+use std::str::FromStr;
 
 pub struct PrettyRequest {
     method: String,
@@ -63,7 +64,7 @@ impl PrettyRequest {
         headers
             .get("content-encoding")
             .and_then(|encoding| encoding.to_str().ok())
-            .and_then(ContentEncoding::from_str)
+            .and_then(|encoding| ContentEncoding::from_str(encoding).ok())
     }
 
     fn format_headers(headers: &HeaderMap, highlight_headers: &[String]) -> String {
